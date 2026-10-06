@@ -2,43 +2,134 @@
 <html lang="es">
 <head>
     <meta charset="UTF-8">
-    <title>Tienda de Ropa Interactiva</title>
+    <title>Tienda de Ropa Interactiva - Login</title>
     <style>
         body { font-family: Arial, sans-serif; margin: 40px; background-color: #f4f4f9; color: #333; }
-        .card { background: white; padding: 20px; margin-bottom: 20px; border-radius: 8px; box-shadow: 0 2px 5px rgba(0,0,0,0.1); }
+        .card { background: white; padding: 20px; margin-bottom: 20px; border-radius: 8px; box-shadow: 0 2px 5px rgba(0,0,0,0.1); max-width: 400px; margin-left: auto; margin-right: auto; }
         input { width: 100%; padding: 8px; margin: 5px 0 15px 0; box-sizing: border-box; border: 1px solid #ccc; border-radius: 4px; }
-        button { background-color: #007bff; color: white; padding: 10px 15px; border: none; border-radius: 4px; cursor: pointer; }
+        button { background-color: #007bff; color: white; padding: 10px 15px; border: none; border-radius: 4px; cursor: pointer; width: 100%; }
         button:hover { background-color: #0056b3; }
         .producto { background: #fafafa; padding: 12px; margin-bottom: 10px; border-left: 4px solid #007bff; border-radius: 4px; }
+        #seccion-tienda { display: none; } /* Oculto hasta iniciar sesión */
+        .oculto { display: none; }
     </style>
 </head>
 <body>
 
-    <h1>Mi Tienda de Ropa</h1>
+    <!-- SECCIÓN DE LOGIN Y REGISTRO -->
+    <div id="seccion-auth" class="card">
+        <h2 id="titulo-auth" style="text-align: center;">Iniciar Sesión</h2>
+        
+        <label for="user">Usuario:</label>
+        <input type="text" id="user" placeholder="Ingresa tu usuario">
 
-    <!-- FORMULARIO DE REGISTRO -->
-    <div class="card">
-        <h3>Registrar Nuevo Producto</h3>
-        <label for="nombre">Nombre de la prenda:</label>
-        <input type="text" id="nombre" placeholder="Ej. Playera Deportiva">
+        <label for="pass">Contraseña:</label>
+        <input type="password" id="pass" placeholder="Ingresa tu contraseña">
 
-        <label for="precio">Precio ($):</label>
-        <input type="number" id="precio" placeholder="Ej. 299">
-
-        <label for="talla">Talla:</label>
-        <input type="text" id="talla" placeholder="Ej. Chica, Mediana, G">
-
-        <button onclick="registrarProducto()">Guardar en la Base de Datos</button>
+        <button id="btn-accion" onclick="iniciarSesion()">Entrar</button>
+        
+        <p style="text-align: center; margin-top: 15px;">
+            <a href="#" id="link-cambiar" onclick="cambiarModo(event)">¿No tienes cuenta? Regístrate aquí</a>
+        </p>
     </div>
 
-    <!-- SECCIÓN DEL CATÁLOGO -->
-    <div class="card">
-        <h3>Catálogo de Productos</h3>
-        <div id="lista-productos">Cargando productos...</div>
+    <!-- SECCIÓN DE LA TIENDA (Protegida) -->
+    <div id="seccion-tienda">
+        <div style="display: flex; justify-content: space-between; align-items: center;">
+            <h1>Mi Tienda de Ropa</h1>
+            <button onclick="cerrarSesion()" style="width: auto; background-color: #dc3545;">Cerrar Sesión</button>
+        </div>
+
+        <!-- FORMULARIO DE REGISTRO DE PRODUCTOS -->
+        <div class="card" style="max-width: 100%;">
+            <h3>Registrar Nuevo Producto</h3>
+            <label for="nombre">Nombre de la prenda:</label>
+            <input type="text" id="nombre" placeholder="Ej. Playera Deportiva">
+
+            <label for="precio">Precio ($):</label>
+            <input type="number" id="precio" placeholder="Ej. 299">
+
+            <label for="talla">Talla:</label>
+            <input type="text" id="talla" placeholder="Ej. Chica, Mediana, G">
+
+            <button onclick="registrarProducto()">Guardar en la Base de Datos</button>
+        </div>
+
+        <!-- CATÁLOGO -->
+        <div class="card" style="max-width: 100%;">
+            <h3>Catálogo de Productos</h3>
+            <div id="lista-productos">Cargando productos...</div>
+        </div>
     </div>
 
     <script>
-        // FUNCIÓN 1: Cargar y listar los productos desde el servidor (GET)
+        let esRegistro = false;
+
+        function cambiarModo(e) {
+            e.preventDefault();
+            esRegistro = !esRegistro;
+            const titulo = document.getElementById('titulo-auth');
+            const btn = document.getElementById('btn-accion');
+            const link = document.getElementById('link-cambiar');
+
+            if (esRegistro) {
+                titulo.innerText = "Registrarse";
+                btn.innerText = "Crear Cuenta";
+                link.innerText = "¿Ya tienes cuenta? Inicia sesión";
+            } else {
+                titulo.innerText = "Iniciar Sesión";
+                btn.innerText = "Entrar";
+                link.innerText = "¿No tienes cuenta? Regístrate aquí";
+            }
+        }
+
+        function iniciarSesion() {
+            const usuario = document.getElementById('user').value;
+            const password = document.getElementById('pass').value;
+
+            if (!usuario || !password) {
+                alert('Por favor llena todos los campos.');
+                return;
+            }
+
+            const endpoint = esRegistro ? '/api/registro' : '/api/login';
+
+            fetch(endpoint, {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ usuario, password })
+            })
+            .then(res => res.json())
+            .then(data => {
+                if (esRegistro) {
+                    alert(data.message || "Registrado con éxito. Ahora inicia sesión.");
+                    cambiarModo(new Event('click')); // Cambiar a login
+                } else {
+                    if (data.success) {
+                        alert(data.message);
+                        // Ocultar login y mostrar tienda
+                        document.getElementById('seccion-auth').style.display = 'none';
+                        document.getElementById('seccion-tienda').style.display = 'block';
+                        cargarProductos();
+                    } else {
+                        alert(data.message || "Credenciales incorrectas.");
+                    }
+                }
+            })
+            .catch(err => {
+                console.error('Error:', err);
+                alert('Ocurrió un error en el servidor.');
+            });
+        }
+
+        function cerrarSesion() {
+            document.getElementById('seccion-tienda').style.display = 'none';
+            document.getElementById('seccion-auth').style.display = 'block';
+            document.getElementById('user').value = '';
+            document.getElementById('pass').value = '';
+        }
+
+        // FUNCIONES DE PRODUCTOS
         function cargarProductos() {
             fetch('/api/productos')
                 .then(response => response.json())
@@ -60,46 +151,38 @@
                 })
                 .catch(error => {
                     console.error('Error al conectar:', error);
-                    document.getElementById('lista-productos').innerHTML = '<p style="color:red;">Error al cargar el catálogo. Verifica que el servidor esté encendido.</p>';
+                    document.getElementById('lista-productos').innerHTML = '<p style="color:red;">Error al cargar el catálogo.</p>';
                 });
         }
 
-        // FUNCIÓN 2: Enviar los datos del formulario al servidor (POST)
         function registrarProducto() {
             const nombre = document.getElementById('nombre').value;
             const precio = document.getElementById('precio').value;
             const talla = document.getElementById('talla').value;
 
-            // Validar que no estén vacíos
             if (!nombre || !precio || !talla) {
-                alert('Por favor completa todos los campos.');
+                alert('Por favor completa todos los campos del producto.');
                 return;
             }
 
-            // Petición HTTP usando POST apuntando a la ruta relativa
             fetch('/api/productos', {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({ nombre: nombre, precio: parseFloat(precio), talla: talla })
+                body: JSON.stringify({ nombre, precio: parseFloat(precio), talla })
             })
             .then(response => response.json())
             .then(data => {
-                alert(data.message); // Muestra el mensaje de éxito del servidor
-                // Limpiar campos del formulario
+                alert(data.message);
                 document.getElementById('nombre').value = '';
                 document.getElementById('precio').value = '';
                 document.getElementById('talla').value = '';
-                
-                cargarProductos(); // Recarga automáticamente la lista para ver el nuevo producto
+                cargarProductos();
             })
             .catch(error => {
                 console.error('Error al registrar:', error);
                 alert('Hubo un error al registrar el producto.');
             });
         }
-
-        // Ejecutar la función de carga al abrir la página por primera vez
-        cargarProductos();
     </script>
 </body>
 </html>
