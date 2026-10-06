@@ -11,8 +11,8 @@ const PORT = process.env.PORT || 3000;
 app.use(express.json());
 app.use(cors());
 
-// Servir archivos estáticos si tienes tu HTML/CSS en una carpeta llamada 'public' o en la raíz
-app.use(express.static('public'));
+// Servir archivos estáticos desde la raíz del proyecto (donde está tu index.html)
+app.use(express.static(__dirname));
 
 // Conexión a la base de datos SQLite
 const db = new sqlite3.Database('./tienda.db', (err) => {
